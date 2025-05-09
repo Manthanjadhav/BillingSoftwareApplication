@@ -1,8 +1,10 @@
 package com.BilllingSoftware.BillingSoftware.controller;
 
+import com.BilllingSoftware.BillingSoftware.Utils.JwtUtil;
 import com.BilllingSoftware.BillingSoftware.io.AuthRequest;
 import com.BilllingSoftware.BillingSoftware.io.AuthResponse;
 import com.BilllingSoftware.BillingSoftware.service.Impl.AppUserDetailsService;
+import com.BilllingSoftware.BillingSoftware.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -27,11 +29,17 @@ public class AuthController {
 
     private final AppUserDetailsService appUserDetailsService;
 
-    @PostMapping
+    private final JwtUtil jwtUtil;
+
+    private final UserService userService;
+
+    @PostMapping("/login")
     public AuthResponse login(@RequestBody AuthRequest request) throws Exception {
         authenticate(request.getEmail(), request.getPassword());
         final UserDetails userDetails = appUserDetailsService.loadUserByUsername(request.getEmail());
-
+        final String jwtToken = jwtUtil.generateToken(userDetails);
+        String role = userService.getUserRole(request.getEmail());
+        return new AuthResponse(request.getEmail(), jwtToken, role);
     }
 
     private void authenticate(String email, String password) throws Exception {
@@ -44,7 +52,7 @@ public class AuthController {
         }
     }
 
-    @PostMapping
+    @PostMapping("/encode")
     public String encodePassword(@RequestBody Map<String,String> request){
         return passwordEncoder.encode(request.get("password"));
     }
