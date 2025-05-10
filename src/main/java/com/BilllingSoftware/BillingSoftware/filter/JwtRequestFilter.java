@@ -1,7 +1,6 @@
 package com.BilllingSoftware.BillingSoftware.filter;
 
 import com.BilllingSoftware.BillingSoftware.Utils.JwtUtil;
-import com.BilllingSoftware.BillingSoftware.service.Impl.AppUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
