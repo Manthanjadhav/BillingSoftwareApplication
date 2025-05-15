@@ -28,7 +28,7 @@ public class ItemController {
             itemRequest = objectMapper.readValue(request, ItemRequest.class);
             return itemService.add(itemRequest,file);
         } catch (JsonProcessingException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Error Occured while processing Json");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Error occurred while processing Json");
         }
     }
 
