@@ -2,13 +2,14 @@ package com.BilllingSoftware.BillingSoftware.service.Impl;
 
 import com.BilllingSoftware.BillingSoftware.entity.OrderEntity;
 import com.BilllingSoftware.BillingSoftware.entity.OrderItemEntity;
-import com.BilllingSoftware.BillingSoftware.io.OrderRequest;
-import com.BilllingSoftware.BillingSoftware.io.OrderResponse;
-import com.BilllingSoftware.BillingSoftware.io.PaymentDetails;
-import com.BilllingSoftware.BillingSoftware.io.PaymentMethod;
+import com.BilllingSoftware.BillingSoftware.io.*;
 import com.BilllingSoftware.BillingSoftware.repository.OrderEntityRepository;
 import com.BilllingSoftware.BillingSoftware.service.OrderService;
+import com.razorpay.Order;
+import com.razorpay.Utils;
 import lombok.RequiredArgsConstructor;
+import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,6 +20,8 @@ import java.util.stream.Collectors;
 public class OrderServiceImpl implements OrderService {
 
     private final OrderEntityRepository orderEntityRepository;
+    @Value("${razorpay.key.secret}")
+    private String razorpayKeySecret;
 
     @Override
     public OrderResponse createOrder(OrderRequest request) {
@@ -92,5 +95,37 @@ public class OrderServiceImpl implements OrderService {
                 .stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public OrderResponse verifyPayment(PaymentVerificationRequest request) {
+        OrderEntity existingOrder = orderEntityRepository.findByOrderId(request.getOrderId())
+                .orElseThrow(()-> new RuntimeException("Order not found"));
+
+        if(!verifyRazorpaySignature(request.getRazorpayOrderId(), request.getRazorpayPaymentId(),request.getRazorpaySignature()))
+        {
+            throw new RuntimeException("Payment verification failed");
+        }
+        PaymentDetails paymentDetails = existingOrder.getPaymentDetails();
+        paymentDetails.setRazorpayOrderId(request.getRazorpayOrderId());
+        paymentDetails.setRazorpayPaymentId(request.getRazorpayPaymentId());
+        paymentDetails.setRazorpaySignature(request.getRazorpaySignature());
+        paymentDetails.setStatus(PaymentDetails.PaymentStatus.COMPLETED);
+        existingOrder = orderEntityRepository.save(existingOrder);
+        return convertToResponse(existingOrder);
+    }
+
+    private boolean verifyRazorpaySignature(String razorpayOrderId, String razorpayPaymentId, String razorpaySignature) {
+        try {
+            JSONObject payload = new JSONObject();
+            payload.put("razorpay_order_id", razorpayOrderId);
+            payload.put("razorpay_payment_id", razorpayPaymentId);
+            payload.put("razorpay_signature", razorpaySignature);
+            Utils.verifyPaymentSignature(payload, razorpayKeySecret);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 }

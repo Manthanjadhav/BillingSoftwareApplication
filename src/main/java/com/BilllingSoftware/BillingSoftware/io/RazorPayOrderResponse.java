@@ -16,6 +16,7 @@ public class RazorPayOrderResponse {
     private String entity;
     private Integer amount;
     private String currency;
+    private String status;
     private Date createdAt;
     private String receipt;
 }
